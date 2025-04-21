@@ -1,0 +1,107 @@
+// frontend/src/pages/EmployeeListPage.jsx
+// --- PASTE THE CODE FROM THE *PREVIOUS* 'EmployeeDisplay' component HERE ---
+// Make sure to include necessary imports at the top, like:
+import React, { useState, useEffect, useCallback } from 'react';
+import { getEmployees, deleteEmployee } from '../services/api'; // Adjust path if needed
+import EmployeeForm from '../components/EmployeeForm'; // Adjust path if needed
+import Button from '@mui/material/Button';
+// ... other MUI imports needed for the table, icons, etc. ...
+import Container from '@mui/material/Container';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+// ... etc ...
+
+// Rename function EmployeeDisplay to EmployeeListPage
+function EmployeeListPage({ onLogout }) {
+    // --- Paste all the state variables (employees, loading, error, showCreateForm, deleteError, editingEmployee) ---
+    // --- Paste all the handler functions (handleEmployeeCreated, handleCancelForm, handleEditClick, handleDeleteClick) ---
+    // --- Paste the useEffect for fetching data (now use getEmployees directly) ---
+     const [employees, setEmployees] = useState([]);
+     const [loading, setLoading] = useState(true);
+     const [error, setError] = useState(null);
+     const [showCreateForm, setShowCreateForm] = useState(false);
+     const [deleteError, setDeleteError] = useState(null);
+     const [editingEmployee, setEditingEmployee] = useState(null);
+
+     // Fetch employees - simplified now, no longer needs useCallback from App
+     const fetchEmployees = async () => {
+       setLoading(true);
+       setError(null);
+       try {
+         const data = await getEmployees(); // Uses apiClient with token
+         setEmployees(data);
+       } catch (err) {
+         console.error("Caught error fetching employees:", err);
+         setError('Failed to fetch employees.'); // Simplified error
+         if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+             // If auth fails, maybe trigger logout via prop? Or show specific message.
+             // For now, just show the error. Parent App handles global logout.
+             setError('Authentication failed. Please log out and log back in.');
+         }
+       } finally {
+         setLoading(false);
+       }
+     };
+
+     // useEffect to fetch on component mount
+     useEffect(() => {
+       fetchEmployees();
+     }, []); // Empty dependency array - fetch once on mount
+
+    // --- Paste the handlers (handleEmployeeCreated, handleCancelForm, handleEditClick, handleDeleteClick) ---
+     const handleEmployeeCreated = (newEmployee) => {
+         setShowCreateForm(false);
+         fetchEmployees(); // Refresh list
+     };
+     const handleEmployeeUpdated = (updatedEmployee) => {
+         setEditingEmployee(null);
+         fetchEmployees(); // Refresh list
+     };
+     const handleEditClick = (employee) => {
+       setEditingEmployee(employee);
+       setShowCreateForm(false);
+     };
+     const handleCancelForm = () => {
+         setShowCreateForm(false);
+         setEditingEmployee(null);
+     };
+     const handleDeleteClick = async (employeeId) => {
+         if (window.confirm(`Are you sure you want to delete employee ID ${employeeId}?`)) {
+             setDeleteError(null);
+             try {
+                 await deleteEmployee(employeeId);
+                 fetchEmployees(); // Refresh list
+             } catch (err) {
+                 console.error("Delete failed:", err);
+                 setDeleteError(err.message || 'Failed to delete employee.');
+             }
+         }
+     };
+
+    // --- Paste the entire return statement JSX (loading, error, main container, buttons, form, table) ---
+    // Make sure it uses the locally defined state and handlers now
+     const isFormVisible = showCreateForm || !!editingEmployee;
+     // ... rest of the return statement exactly as it was in EmployeeDisplay ...
+     // Including the <EmployeeForm /> component call with correct props
+
+
+    // --- Ensure component is exported ---
+    return (
+        // JSX exactly as it was in EmployeeDisplay previously
+        <Container maxWidth="lg" style={{ marginTop: '20px' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+             <Typography variant="h4" component="h1">Employee List</Typography>
+             <Box>
+                {!isFormVisible && (<Button variant="contained" startIcon={<AddIcon />} onClick={() => { setShowCreateForm(true); setEditingEmployee(null); }}>Add Employee</Button>)}
+                 <Button variant="contained" color="secondary" sx={{ml: 2}} onClick={onLogout}>Log Out</Button>
+             </Box>
+           </Box>
+            {/* ... rest of JSX including deleteError, EmployeeForm, Table conditional rendering ... */}
+            {deleteError && ( <Alert severity="error" sx={{ mb: 2 }} onClose={() => setDeleteError(null)}> Delete Error: {deleteError} </Alert>)}
+            {isFormVisible && ( <EmployeeForm initialData={editingEmployee} onEmployeeCreated={handleEmployeeCreated} onEmployeeUpdated={handleEmployeeUpdated} onCancel={handleCancelForm} /> )}
+            {!isFormVisible && ( employees.length === 0 ? ( <Typography>No employees found.</Typography> ) : ( <TableContainer component={Paper} elevation={3}> {/*... Table ...*/}</TableContainer> ) )}
+        </Container>
+    );
+}
+
+export default EmployeeListPage; // Export the component
