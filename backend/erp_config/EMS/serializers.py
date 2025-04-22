@@ -1,63 +1,67 @@
-# C:\scripts\my_app\my_erp_project\backend\erp_config\EMS\serializers.py
+# backend/erp_config/EMS/serializers.py (Corrected Timestamp Field Names)
 
 from rest_framework import serializers
-from django.contrib.auth import get_user_model # To get the User model
-from .models import Employee # Import the Employee model we created
+from django.contrib.auth.models import User
+from .models import Employee, Department
 
-# Get the User model configured in settings (usually django.contrib.auth.models.User)
-User = get_user_model()
-
-# Optional: A simple serializer just for displaying related User info concisely
+# User Serializer (if needed)
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email'] # Fields from User model to show
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_active']
+        read_only_fields = ['id', 'is_active']
 
-# Main serializer for the Employee model
+# Department Serializer (Correct)
+class DepartmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = ['id', 'name', 'description'] # Keep fields simple for nesting
+        read_only_fields = ['id']
+
+# Employee Serializer - With Corrected Timestamp Names
 class EmployeeSerializer(serializers.ModelSerializer):
-    # Display related User info using the nested serializer (read-only)
-    # Alternatively, could use StringRelatedField or just show the user ID
-    user = UserSerializer(read_only=True)
-
-    # Make related user ID writeable for creating/linking employees,
-    # but don't show it in the main representation (it's nested in 'user' above)
+    user = UserSerializer(read_only=True, required=False, allow_null=True)
     user_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), source='user', write_only=True, required=False, allow_null=True
+        queryset=User.objects.all(), source='user', write_only=True,
+        required=False, allow_null=True
+    )
+    # Nested Department Serializer for reading
+    department = DepartmentSerializer(read_only=True, required=False, allow_null=True)
+    # PrimaryKeyRelatedField for writing department ID
+    department_id = serializers.PrimaryKeyRelatedField(
+        queryset=Department.objects.all(), source='department', write_only=True,
+        required=False, allow_null=True
     )
 
     class Meta:
-        model = Employee # Specify the model the serializer is for
-        # List the fields from the Employee model to include in the API representation
+        model = Employee
         fields = [
-            'id',                     # Employee model's own primary key
+            'id',
             'employee_id',
-            'user',                   # Read-only nested object (can be null)
-            'user_id',                # Write-only, optional ID
+            'user',
+            'user_id',
+            'department', # Read-only nested object
+            'department_id', # Write-only ID field
             'mobile_phone',
-            'department',
             'job_title',
             'employment_type',
             'date_joined',
             'employee_status',
-            'profile_picture', 
+            'profile_picture',
             'date_of_birth',
             'gender',
             'marital_status',
             'home_address',
+            # 'pin_code', # Still omitted
             'nationality',
-            'date_created',
-            'date_updated',
+            # 'emergency_contacts', # Still omitted
+            'date_created', # <-- Corrected Name
+            'date_updated', # <-- Corrected Name
         ]
-        # Specify fields that should be read-only in the API
         read_only_fields = [
             'id',
-            'date_created',
-            'date_updated',
-            # 'user' is read-only by default because we used UserSerializer(read_only=True)
+            'user',
+            'department', # Nested object is read-only
+            'date_created', # <-- Corrected Name
+            'date_updated', # <-- Corrected Name
         ]
-
-    # Optional: Add validation if needed, e.g., validate_employee_id
-    # def validate_employee_id(self, value):
-    #     if not value.startswith('EMP'):
-    #         raise serializers.ValidationError("Employee ID must start with 'EMP'.")
-    #     return value

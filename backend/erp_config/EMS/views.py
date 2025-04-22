@@ -1,21 +1,24 @@
-# C:\scripts\my_app\my_erp_project\backend\erp_config\EMS\views.py
+# backend/erp_config/EMS/views.py (Corrected - Only Employee + Department Views)
 
 from rest_framework import viewsets, permissions
-from .models import Employee
-from .serializers import EmployeeSerializer
+from django.contrib.auth.models import User
+# Import models and serializers needed
+from .models import Employee, Department # Import Employee and Department
+from .serializers import EmployeeSerializer, DepartmentSerializer # Import relevant serializers
+# Removed UserViewSet import if it wasn't defined or needed here
 
-# Create your views here.
+# Employee ViewSet (keep as is, ensure queryset is correct)
 class EmployeeViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows employees to be viewed or edited.
-    Provides list, create, retrieve, update, partial_update, destroy actions.
-    """
-    queryset = Employee.objects.all().order_by('-date_joined') # Get all Employee objects, newest joined first
-    serializer_class = EmployeeSerializer # Use the serializer we created
-    permission_classes = [permissions.IsAuthenticated] # Only allow logged-in users to access
+    # Using select_related('user') optimizes fetching linked user data
+    queryset = Employee.objects.select_related('user').all()
+    serializer_class = EmployeeSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-    # Optional: You can add custom actions or override methods here later if needed
-    # For example, an action to import employees from Excel
-    # Or override perform_create to link the user automatically
-    # def perform_create(self, serializer):
-    #    serializer.save(user=self.request.user) # Example, adjust based on how users/employees are created
+# Department ViewSet (ReadOnly for now)
+class DepartmentViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint that allows departments to be viewed.
+    """
+    queryset = Department.objects.all().order_by('name')
+    serializer_class = DepartmentSerializer
+    permission_classes = [permissions.IsAuthenticated] # Or adjust permissions as needed
