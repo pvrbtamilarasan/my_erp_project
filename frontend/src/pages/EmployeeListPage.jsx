@@ -1,11 +1,11 @@
-// frontend/src/pages/EmployeeListPage.jsx (Fix Department display & Check Structure)
+// frontend/src/pages/EmployeeListPage.jsx (Verified Structure for Hydration)
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getEmployees, deleteEmployee } from '../services/api';
 import EmployeeForm from '../components/EmployeeForm';
 
-// MUI Imports
+// --- MUI Imports ---
 import Container from '@mui/material/Container';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -42,9 +42,13 @@ function EmployeeListPage({ onLogout }) {
     setLoading(true); setError(null); setDeleteError(null);
     try {
       const data = await getEmployees();
-      setEmployees(data);
-    } catch (err) { setError('Failed to fetch employees.'); console.error(err); }
-    finally { setLoading(false); }
+      setEmployees(Array.isArray(data) ? data : []); // Ensure employees is always an array
+    } catch (err) {
+      setError('Failed to fetch employees.');
+      console.error("Fetch Error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchEmployees(); }, []);
@@ -97,7 +101,7 @@ function EmployeeListPage({ onLogout }) {
 
        {/* Conditional Table Rendering */}
        {!isFormVisible && (
-         <>
+         <> {/* Using Fragment to avoid extra divs */}
           {employees.length === 0 ? (
              <Typography sx={{mt: 4, textAlign: 'center'}}>No employees found.</Typography>
            ) : (
@@ -110,27 +114,26 @@ function EmployeeListPage({ onLogout }) {
                      <TableCell sx={{ fontWeight: 'bold' }}>Username</TableCell>
                      <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
                      <TableCell sx={{ fontWeight: 'bold' }}>Job Title</TableCell>
-                     <TableCell sx={{ fontWeight: 'bold' }}>Department</TableCell>{/* Keep Header */}
+                     <TableCell sx={{ fontWeight: 'bold' }}>Department</TableCell>
                      <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
                      <TableCell sx={{ fontWeight: 'bold' }} align="center">Actions</TableCell>
                    </TableRow>
                  </TableHead>
                  <TableBody>
                    {employees.map((employee) => (
+                     // Ensure no extraneous whitespace within TableRow mapping
                      <TableRow key={employee.id} hover sx={{ '&:nth-of-type(odd)': { backgroundColor: (theme) => alpha(theme.palette.action.hover, 0.04)} }}>
                        <TableCell>{employee.employee_id}</TableCell>
                        <TableCell>{`${employee.user?.first_name || ''} ${employee.user?.last_name || ''}`.trim() || '-'}</TableCell>
                        <TableCell>{employee.user?.username || '-'}</TableCell>
                        <TableCell>{employee.user?.email || '-'}</TableCell>
                        <TableCell>{employee.job_title || '-'}</TableCell>
-                       {/* --- CORRECTED Department Cell --- */}
                        <TableCell>{employee.department?.name || '-'}</TableCell>
-                       {/* ---------------------------------- */}
-                       <TableCell>{employee.employee_status || '-'}</TableCell> {/* Added fallback */}
+                       <TableCell>{employee.employee_status || '-'}</TableCell>
                        <TableCell align="center" sx={{whiteSpace: 'nowrap'}}>
-                         <IconButton size="small" color="info" onClick={() => handleViewClick(employee.id)} title="View Details"> <VisibilityIcon fontSize="small" /> </IconButton>
-                         <IconButton size="small" color="primary" onClick={() => handleEditClick(employee)} title="Edit Inline"> <EditIcon fontSize="small" /> </IconButton>
-                         <IconButton size="small" color="error" onClick={() => handleDeleteClick(employee.id, employee.employee_id)} title="Delete"> <DeleteIcon fontSize="small" /> </IconButton>
+                         <IconButton size="small" color="info" onClick={() => handleViewClick(employee.id)} title="View Details"><VisibilityIcon fontSize="small" /></IconButton>
+                         <IconButton size="small" color="primary" onClick={() => handleEditClick(employee)} title="Edit Inline"><EditIcon fontSize="small" /></IconButton>
+                         <IconButton size="small" color="error" onClick={() => handleDeleteClick(employee.id, employee.employee_id)} title="Delete"><DeleteIcon fontSize="small" /></IconButton>
                        </TableCell>
                      </TableRow>
                    ))}
@@ -139,7 +142,7 @@ function EmployeeListPage({ onLogout }) {
              </TableContainer>
            )
           }
-         </>
+         </> // End Fragment
        )}
      </Container>
   );

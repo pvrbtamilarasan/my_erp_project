@@ -1,30 +1,28 @@
-// frontend/src/App.jsx
+// frontend/src/App.jsx (Corrected Route Order)
 
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, BrowserRouter as Router, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, BrowserRouter as Router, Navigate, Outlet, useLocation } from 'react-router-dom'; // Import useLocation if needed for redirect state
 import LoginForm from './components/LoginForm';
-// We will create these page components next
+// Import page components
 import EmployeeListPage from './pages/EmployeeListPage';
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
-import NotFoundPage from './pages/NotFoundPage'; // Optional: for handling bad URLs
+import NotFoundPage from './pages/NotFoundPage';
 import './App.css';
 
 // --- Protected Route Component ---
-// Checks if user is authenticated, otherwise redirects to login
 function ProtectedRoute({ isAuthenticated, children }) {
+    let location = useLocation(); // Optional: Get current location
+
     if (!isAuthenticated) {
-        // Redirect them to the /login page, but save the current location they were
-        // trying to go to. This allows us to send them back after login. (Optional)
-        // You might want to use useLocation here if needed.
-        return <Navigate to="/login" replace />;
+        // Redirect to login, optionally passing the intended destination
+        return <Navigate to="/login" state={{ from: location }} replace />;
     }
-    // If authenticated, render the child components (Outlet or specific component)
-    return children ? children : <Outlet />;
+    // Render the component requested by the route
+    return children ? children : <Outlet />; // Outlet renders nested routes
 }
 
 // --- Main App Component ---
 function App() {
-    // Keep auth state management here
     const [authToken, setAuthToken] = useState(() => localStorage.getItem('authToken'));
     const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('authToken'));
 
@@ -34,26 +32,18 @@ function App() {
             localStorage.setItem('authToken', token);
             setAuthToken(token);
             setIsAuthenticated(true);
-        } else {
-            console.error("Login response did not contain key:", loginData);
-        }
+        } else { console.error("Login response did not contain key:", loginData); }
     };
 
     const handleLogout = () => {
-        // TODO: Call backend logout endpoint if implemented in api.js
         localStorage.removeItem('authToken');
         setAuthToken(null);
         setIsAuthenticated(false);
-        // Optionally navigate to login page after logout
-        // navigate('/login'); // Requires useNavigate hook if used here
+        // No need for explicit navigate('/login') here, ProtectedRoute handles it
     };
-
-    // Effect to potentially verify token validity on load (optional advanced step)
-    // useEffect(() => { ... }, []);
 
     return (
         <div className="App">
-            {/* Define application routes */}
             <Routes>
                 {/* Public Route: Login Page */}
                 <Route
@@ -62,17 +52,23 @@ function App() {
                 />
 
                 {/* Protected Routes Wrapper */}
+                {/* Any route inside here requires isAuthenticated to be true */}
                 <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
-                    {/* Default route for authenticated users */}
+                    {/* Default route redirects to employee list */}
                     <Route path="/" element={<Navigate to="/employees" replace />} />
+
+                    {/* --- CORRECTED ORDER --- */}
+                    {/* Employee Detail Page (More specific, needs to come first) */}
+                    <Route path="/employees/:employeeId" element={<EmployeeDetailPage onLogout={handleLogout} />} />
                     {/* Employee List Page */}
                     <Route path="/employees" element={<EmployeeListPage onLogout={handleLogout} />} />
-                    {/* Employee Detail Page */}
-                    <Route path="/employees/:employeeId" element={<EmployeeDetailPage onLogout={handleLogout} />} />
-                    {/* Add other protected routes here later */}
+                    {/* ----------------------- */}
+
+                    {/* Add other protected routes like Dashboard, Settings etc. here */}
+                    {/* Example: <Route path="/dashboard" element={<DashboardPage />} /> */}
                 </Route>
 
-                {/* Optional: Catch-all route for 404 Not Found */}
+                {/* Catch-all 404 Route */}
                 <Route path="*" element={<NotFoundPage />} />
             </Routes>
         </div>
